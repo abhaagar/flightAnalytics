@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Flight History</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <script src='custom.css'></script>
+    <script>
+      $(function() {
+        $( "#datepicker" ).datepicker();
+      }); 
+    </script>
+  </head>
+  <body>
+    <div class="container">
+    <h2>Flight History</h2>
+    <form class='my-form' role="form" action='localhost/cityHistory/' method="GET">
+      <table >
+        <tr>
+          <td align="left" width='150'>
+            <div class="form-group">
+            <label for="origin">Origin:</label>
+            <div class="divider"/>
+              <div class="btn-group" id="myDropdown1">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"  aria-haspopup="true" aria-expanded="false" name='originCity'>
+                Select <span class="caret"></span></button>
+                <ul class="dropdown-menu form-control" role="menu" aria-labelledby='originCity'>
+                  {% for orig in origin %}
+                  <li role="presentation"><a role="menuitem" href="#" value="{{ orig[1] }}">{{ orig[0] }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </td>
+          <td align="right" width='150'>
+            <div class="form-group">
+            <label for="destination">Destination:</label>
+            <div class="divider"/>
+              <div class="btn-group" id="myDropdown2">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="destinationCity">
+                Select <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu form-control" role="menu" aria-labelledby='destinationCity'>
+                  {% for dest in destination %}
+                  <li><a href="#" value="{{ dest[1] }}">{{ dest[0] }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr><td width='200'>
+          <div class="form-group">
+            <label for="date">Date:</label>
+            <div class="divider"/>
+              <input type="text" id="datepicker">
+            </div>
+          
+        </td></tr>
+        <tr><td width='200'>
+        <button type="submit" class="btn btn-default">Submit</button></td></tr>
+      </table>
+    </form>
+    <script>
+        $(".dropdown-menu li a").click(function(){
+            var selText = $(this).text();
+            $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+'<span class="caret"></span>');
+        });
+
+    </script>
+    </div>
+  </body>
+</html>
+
+

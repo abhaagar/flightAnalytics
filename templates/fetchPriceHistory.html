@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title align='middle'>Price History</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='jquery.canvasjs.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='canvasjs.min.js') }}"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href='./css/custom.css'>
+    <script type="text/javascript" src="https://www.google.com/jsapi?autoload={'modules':[{'name':'visualization','version':'1','packages':['corechart']}]}"></script>
+    <script>
+      $(function() {
+        $( "#datepicker" ).datepicker();
+      }); 
+    </script>
+  </head>
+  <body>
+    <div class="container">
+    <h2>Price History</h2>
+    <form class='my-form' name='my-form' action="/priceHistory/" role="form" onSubmit="return( validateForm())" method="POST">
+          <div class="form-group">
+            <label for="origin">Origin:</label>
+            <div class="btn-group" id="myDropdown1">
+              <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"  aria-haspopup="false" aria-expanded="false" name='originCity' id='originCity'>{{ origin }} <span class="caret"></span></button>
+              <input type='hidden' class='input' name='selectedOrigin' id='selectedOrigin' value="{{ originValue}}">
+              <ul class="dropdown-menu form-control" role="menu" id='originCities'>
+                {% for orig in origCities %}
+                <li role="presentation"><a role="menuitem" value="{{ orig[1] }}" href="#">{{ orig[0] }}</a></li> 
+                {% endfor %}
+              </ul>
+            </div>
+            <label for="destination">Destination:</label>
+            <div class="btn-group" id="myDropdown2">
+              <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="destinationCity" id='destinationCity'>{{ destination }}<span class="caret"></span></button>
+              <input type='hidden' class='input' name='selectedDestination' id='selectedDestination' value="{{ destinationValue }}">
+              <ul class="dropdown-menu form-control" role="menu"  id='destinationCities'>
+                {% for dest in destCities %}
+                <li role="presentation"><a role="menuitem" value="{{ dest[1] }}" href="#">{{ dest[0] }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+              <label for="from">Slot From:</label>
+              <div class="btn-group" id="myDropdown3">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="slotFrom" id='slotFrom'>{{ slotFrom }}<span class="caret"></span></button>
+                <input type='hidden' class='input' name='selectedSlotFrom' id='selectedSlotFrom' value="{{ slotFrom }}">
+                <ul class="dropdown-menu form-control" role="menu"  id='slots'>
+                  {% for slot in slots %}
+                  <li role="presentation"><a role="menuitem" value="{{ slot }}" href="#">{{ slot }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <label for="to">Slot To:</label>
+              <div class="btn-group" id="myDropdown4">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="slotTo" id='slotTo'>{{ slotTo }}<span class="caret"></span></button>
+                <input type='hidden' class='input' name='selectedSlotTo' id='selectedSlotTo' value="{{ slotTo }}">
+                <ul class="dropdown-menu form-control" role="menu"  id='slots'>
+                  {% for slot in slots %}
+                  <li role="presentation"><a role="menuitem" value="{{ slot }}" href="#">{{ slot }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <label for="metric">Metric:</label>
+              <div class="btn-group" id="myDropdown5">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="metric" id='metric'>{{ metric }}<span class="caret"></span></button>
+                <input type='hidden' class='input' name='selectedMetric' id='selectedMetric'>
+                <ul class="dropdown-menu form-control" role="menu"  id='metrics'>
+                  {% for metric in metrics %}
+                  <li role="presentation"><a role="menuitem" value="{{ metric }}" href="#"> {{ metric }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+            <label for="date">Date:</label>
+            <input type="text" id="datepicker" name="datepicker" value="{{date}}">
+            <button type="submit" class="btn btn-default" id='submitButton' align='middle'>Submit</button>
+          </div>
+
+    </form>
+   </br> 
+    <div id='myDiv'  style="float:top">
+    </div>
+    <script>
+        $(".dropdown-menu li a").click(function(){
+            var selText = $(this).text();
+            var selVal = $(this).attr("value");
+            $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+'<span class="caret"></span>');
+            $(this).parents('.btn-group').find('.input').val(selVal);
+            
+        });
+        function validateForm(){
+            var orig = $('#selectedOrigin').val();
+            var dest = $('#selectedDestination').val();
+            var from = $('#selectedSlotFrom').val();
+            var to = $('#selectedSlotTo').val();
+            var metric = $('#selectedMetric').val();
+            var date = $('#datepicker').val()
+            if(!orig) {
+               alert('Please select Origin');
+               return false;
+            } else if(!dest) {
+               alert('Please select Destination');
+               return false;
+            } else if(!date) {
+               alert('Please select Date');
+               return false;
+            } else if(orig==dest) {
+               alert("Don't choose same Origin and Destination");
+               return false;
+            } else if(!from) {
+               alert("Please select the Starting Slot");
+               return false;
+            } else if(!to) {
+               alert("Please select Ending Slot"); 
+               return false;
+            } else if(from>to) {
+               alert('Starting Slot can not greater than Ending Slot');
+               return false;
+            } else if(!metric) {
+               alert("Please select Metric"); 
+               return false;
+            } 
+            return true;
+        }
+        {
+           var prices = String('{{ history }}');
+           prices = String(prices);
+           prices = prices.split(':');
+           var len = prices.length;
+           var priceHistory = new Array(len+1);
+           var j = 0;
+           var table = new google.visualization.DataTable();
+           table.addColumn('date','Date');
+           table.addColumn('number','Price');
+           for(i=0;i<len;i++) { 
+              var price = prices[i];
+              price = String(price);
+              price = price.split(' ');
+              var year = parseInt(price[0]);
+              var month = parseInt(price[1])-1;
+              var day = parseInt(price[2])-1;
+              var p = parseInt(price[3]);
+              table.addRow([new Date(year,month,day),p]);   
+           }
+
+           var chart = new google.visualization.LineChart(document.getElementById('myDiv'));
+           var options = {
+             title: 'Flight History',
+             curveType: 'function',
+             legend: { position: 'bottom' }
+           };
+           chart.draw(table, options);
+        }
+
+    </script>
+    </div>
+  </body>
+</html>
+
+
