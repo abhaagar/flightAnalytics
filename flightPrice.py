@@ -287,15 +287,18 @@ def maybeInsertFlightHistoryForDate(date):
    #    retryFlight(retryQueue.get())
    sys.exit(0) 
 
-allMonths = [32,29,32,31,32,31,32,32,31,32,31,32]
+allMonths = [32,30,32,31,32,31,32,32,31,32,31,32]
 
 year = '2015'
 currMonth = 10
 endMonth = 10
 if __name__=="__main__":
+   flightUtil.connection()
    year = sys.argv[1]
    currMonth = int(sys.argv[2])
    endMonth = int(sys.argv[3])
+   today = int(time.strftime('%d'))
+   currMonth = int(time.strftime('%m'))
    isResetNeeded = ''
    if len(sys.argv)==5:
       isResetNeeded = sys.argv[4]
@@ -314,7 +317,7 @@ if __name__=="__main__":
       return str(num)
    months = allMonths[currMonth-1:endMonth]
    dates = \
-      [(j,i+1) for i in range(currMonth-1,endMonth) for j in range(1,allMonths[i])]
+      [(j,i+1) for i in range(currMonth-1,endMonth) for j in range(1,allMonths[i]) if ((i+1)==currMonth and j>=today) or (i+1)!=currMonth]
    for date in dates:
       iterator = 0
       while iterator < len(date):
