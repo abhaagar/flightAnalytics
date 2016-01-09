@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import MySQLdb
-import re,sys,gc,json,datetime,signal,traceback,random
+import re,sys,gc,json,datetime,signal,traceback
 import urllib2,gzip
-import cStringIO
+from StringIO import StringIO
 
 appError = 0
 sysError = 0
@@ -11,37 +11,23 @@ airlineNameQuery = "SELECT name FROM airline where code='%s'"
 airlineQuery = 'SELECT name, code FROM airline'
 cityNameQuery = "SELECT name FROM cityWithCode where code='%s'"
 cityQuery = "SELECT name,code FROM cityWithCode"
-directFlightsQuery =  "SELECT DISTINCT name,timings "\
-                      "FROM flights as A,directFlightsDetails as B "\
-                      "WHERE A.id=B.fid AND A.name LIKE '%s' "\
-                      "AND departureCity='%s' AND arrivalCity='%s'"\
-                      "AND A.isAvailable=1 AND B.isAvailable=1"
-oneStopFlightsQuery =  "SELECT DISTINCT name,timings "\
-                      "FROM flights as A,oneStopFlightsDetails as B "\
-                      "WHERE A.id=B.fid AND A.name LIKE '%s' "\
-                      "AND departureCity='%s' AND arrivalCity='%s'"\
-                      "AND A.isAvailable=1 AND B.isAvailable=1"
-twoStopFlightsQuery = "SELECT DISTINCT name,timings "\
-                      "FROM flights as A,twoStopFlightsDetails as B "\
-                      "WHERE A.id=B.fid AND A.name LIKE '%s' "\
-                      "AND departureCity='%s' AND arrivalCity='%s'"\
-                      "AND A.isAvailable=1 AND B.isAvailable=1"
+directFlightsQuery =  "SELECT DISTINCT name,departureCity,arrivalCity,depart,arrival "\
+                      "FROM directFlights "\
+                      "WHERE name REGEXP '%s' and arrivalCity='%s' "
+oneStopFlightsQuery = "SELECT DISTINCT name,departureCity,arrivalCity,"\
+                      "depart1,arrival1,depart2,arrival2 "\
+                      "FROM oneStopFlights "\
+                      "WHERE name REGEXP '%s' and arrivalCity='%s'"
+twoStopFlightsQuery = "SELECT DISTINCT name,departureCity,arrivalCity,"\
+                      "depart1,arrival1,depart2,arrival2,depart3,arrival3 "\
+                      "FROM twoStopFlights "\
+                      "WHERE name REGEXP '%s' and arrivalCity='%s'"
 errorLoggigQuery =    "Insert into errorLog (traceBack,information,type) "\
                       "values('%s','%s',%s)"
 priceHistoryQuery =   "SELECT price,DATE_FORMAT(price.sampleTime,'%%Y/%%m/%%d') as date "\
-                      "FROM flights as A,directFlightsDetails as B, directFlightsPrices as C"\
-                      "WHERE A.id=B.fid and B.id=C.sid and A.isAvailable=1 and B.isAvailable=1"\
-                      "and name='%s' ORDER BY date asc "\
-                      "UNION "\
-                      "SELECT price,DATE_FORMAT(price.sampleTime,'%%Y/%%m/%%d') as date "\
-                      "FROM flights as A,oneStopFlightsDetails as B, oneStopFlightsPrices as C"\
-                      "WHERE A.id=B.fid and B.id=C.sid and A.isAvailable=1 and B.isAvailable=1"\
-                      "and name='%s' ORDER BY date asc "\
-                      "UNION "\
-                      "SELECT price,DATE_FORMAT(price.sampleTime,'%%Y/%%m/%%d') as date "\
-                      "FROM flights as A,twoStopFlightsDetails as B, twoStopFlightsPrices as C"\
-                      "WHERE A.id=B.fid and B.id=C.sid and A.isAvailable=1 and B.isAvailable=1"\
-                      "and name='%s' ORDER BY date asc "
+                      "FROM flights,stop,price "\
+                      "WHERE flights.id=stop.fid and stop.id=price.sid "\
+                      "and name='%s' ORDER BY date asc"
 metricPriceHistoryQuery = \
                       "SELECT Date_FORMAT(sampleDate,'%%d/%%m/%%Y'), %s(price) "\
                       "FROM directFlights "\
@@ -51,13 +37,14 @@ metricPriceHistoryQuery = \
                       "GROUP BY sampleDate"
 resetFlightAvailabilityQuery = \
                       "UPDATE flights SET isAvailable=0"
-resetDirectFlightsDetailsAvailabilityQuery = \
-                      "UPDATE directFlightsDetails SET isAvailable=0"
-resetOneStopFlightsDetailsAvailabilityQuery = \
-                      "UPDATE oneStopFlightsDetails SET isAvailable=0"
-resetTwoStopFlightsDetailsAvailabilityQuery = \
-                      "UPDATE twoStopFlightsDetails SET isAvailable=0"
-
+resetTimingsAvailabilityQuery = \
+                      "UPDATE details SET isAvailable=0" 
+resetStopAvailabilityQuery = \
+                      "UPDATE stop SET isAvailable=0"
+resetStop1AvailabilityQuery = \
+                      "UPDATE stop1 SET isAvailable=0"
+resetStop2AvailabilityQuery = \
+                      "UPDATE stop2 SET isAvailable=0"
 errorLoggingQuery =   "INSERT INTO errorLog (traceBack,information,type)"\
                       " VALUES('%s','%s','%s')"
 commit =              "commit"
@@ -228,20 +215,13 @@ def flightQueryPattern(airline,date):
    return [prefix,'%'+sufix+'%']
 
 def flightQueryPattern(airline,orig,date):
-
    airlinePattern = ''
    if airline=='':
-      airlinePattern = '__'
+      airlinePattern = '..'
    else:
       airlinePattern = airline
-   suffix = flightQuerySufix(date)
-
-   #if flightType=='direct':
-   #   return orig+dest+'%'+airlinePattern+'%'+suffix 
-   #elif flightType=='oneStop' or flightType=='twoStop':
-   #   return orig+'%'+airlinePattern+'%'+suffix
-   #return ''
-   return orig+'%'+airlinePattern+'%'+suffix
+   sufix = flightQuerySufix(date)
+   return '^'+orig+'[A-Z]{3}'+airlinePattern+'[0-9]*'+airlinePattern+sufix
 
 def findAndSanitizeInput(response):
    match = ''
@@ -262,8 +242,7 @@ def createConnection():
                           host='127.0.0.1',\
                           user='root',\
                           passwd='root',\
-                          db='flightDetails')
-                          #db='flightPricesExperiment')
+                          db='flightPricesExperiment')
                           #db='flightPricesBackup')
                           #db='flightPrices')
    except Exception, e:
@@ -281,7 +260,6 @@ def executeQueryAndReturn(query):
       cnx = connection()
       cur = cnx.cursor()
       cur.execute(query)
-      print query
       data = cur.fetchall()
       cnx.close()
    except Exception,e:
@@ -289,11 +267,14 @@ def executeQueryAndReturn(query):
    return data
 
 def executeProcedureAndReturn(procName,args):
-   cnx = connection()
-   cur = cnx.cursor()
-   cur.callproc(procName,args)
-   result = cur.fetchall()
-   cnx.close()
+   try:
+      cnx = connection()
+      cur = cnx.cursor()
+      cur.callproc(procName,args)
+      result = cur.fetchall()
+      cnx.close()
+   except Exception,e:
+      return 'Error'+str(e)
    return result
 
 def cityPairList():
@@ -326,7 +307,7 @@ def flightDescriptionPair2(cityList,timings):
    fstr += cityList[iterLen]
    return fstr
  
-def flightDescription(code,timings):
+def flightDescription(code,timimngs):
    city1=''
    city2=''
    city3=''
@@ -334,8 +315,7 @@ def flightDescription(code,timings):
    prefix = airlineName(code[6:8])
    pair1 = code
    pair2 = prefix+ ' '
-   timings = timings.split(' ')
-   sufix = [timing+' ' for timing in timings]
+   sufix = [timing+' ' for timing in timimngs]
    cities = executeQueryAndReturn(cityQuery)
    def cityNames(codes):
       names = []
@@ -371,7 +351,6 @@ def flightDescription(code,timings):
 
 #date = 29/11/15
 def fetchSanitizedInput(orig,dest,date,travlr=1):
-   uniq = random.randint(100000000,999999999)
    url = 'http://www.yatra.com/air-search/dom2/trigger?'\
          'type=O&'\
          'viewName=normal&'\
@@ -383,30 +362,37 @@ def fetchSanitizedInput(orig,dest,date,travlr=1):
          'destinationCountry=IN&'\
          'flight_depart_date=%s&'\
          'ADT=%s&CHD=0&INF=0&class=Economy&'\
-         'hb=False&unique=%d'%(orig,dest,date,travlr,uniq)
+         'hb=False&unique=123123123434'%(orig,dest,date,travlr)
    request = urllib2.Request(url)
    request.add_header('Host','www.yatra.com')
    request.add_header('Accept','*/*')
    request.add_header('Accept-Language','en-US,en;q=0.5')
    request.add_header('Accept-Encoding','gzip, deflate')
    request.add_header('X-Requested-With','XMLHttpRequest')
-   #request.add_header('Connection','keep-alive')
+   request.add_header('Connection','keep-alive')
+   #request.add_header('User-Agent',"Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.111 Safari/537.36") #$
+   #request.add_header('User-Agent',"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)") #$
    request.add_header('User-Agent',"Mozilla/5.0 (Linux x86_64) Gecko/20100101 Firefox/41.0") #$
-   #@ print 'Request :',request.headers.items()
+   print 'Request :',request.headers.items()
    response = urllib2.urlopen(request)
-   #@ print 'Response :',response.info()
+   data = []
+   print 'Response :',response.info()
    
    if response.info().get('Content-Encoding').find('gzip')!=-1:
        f = gzip.GzipFile(fileobj = cStringIO.StringIO(response.read()))
        line = f.readline()
        while line!='':
+
           try:
-             if re.search("eagerFetch",line):
-                line = line.replace(';','=').split('=',4)
+             line = re.search("eagerFetch",line)
+             if line:
+                print line
+                line = line.replace(':','=').split('=',9)
                 return False,line[1]
           except Exception,e:
                 return True,line
           line = f.readline()
    return False,line 
+   #$ return findAndSanitizeInput(data)
 
 
