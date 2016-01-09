@@ -11,8 +11,17 @@ app = Flask(__name__)
 
 @app.route('/flight/<name>', methods=['POST'])
 def flight(name):
+   typ = flightUtil.flightType(name)
+   query = ''
+   if typ=="direct":
+      query = flightUtil.directFlightPriceHistoryQuery
+   elif typ=="oneStop":
+      query = flightUtil.oneStopFlightPriceHistoryQuery
+   elif typ=="twoStop":
+      query = flightUtil.twoStopFlightPriceHistoryQuery
+
    priceHistory = flightUtil.executeQueryAndReturn(
-                     flightUtil.priceHistoryQuery%name)
+                     query%name)
    print priceHistory
    priceHistory = [(price[0],price[1]) for price in priceHistory]
    history =''
@@ -57,30 +66,30 @@ def flightHistory():
                                originButton.getValue(),\
                                dt)
          print pattern
-         def flightView(query,pattern,dest):
+         def flightView(query,pattern,orig,dest):
             fltLst = []
             fltHst = \
                flightUtil.executeQueryAndReturn( \
-                  query%(pattern,dest))
+                  query%(pattern,orig,dest))
             for flt in fltHst:
-               fltLst.append(flightUtil.flightDescription(flt[0],flt[3:]))
+               fltLst.append(flightUtil.flightDescription(flt[0],flt[1]))
             return fltLst
          if stopButton.getValue()=='':
             twoStop = flightView(\
-               flightUtil.twoStopFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
             oneStop = flightView(\
-               flightUtil.oneStopFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
             direct  = flightView(\
-               flightUtil.directFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
          elif stopButton.getValue()=='direct':
             direct  = flightView(\
-               flightUtil.directFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
          elif stopButton.getValue()=='one':
             oneStop = flightView(\
-               flightUtil.oneStopFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
          elif stopButton.getValue()=='two':
             twoStop = flightView(\
-               flightUtil.twoStopFlightsQuery,pattern,destinationButton.getValue())
+               flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
 
          destinationButton.setLabel(\
             flightUtil.executeQueryAndReturn(\
@@ -250,7 +259,8 @@ def monthlyStatistics():
 
 
 if __name__ == '__main__':
-   app.run(debug=True,port=12345)
+   #app.run(debug=True,port=12345)
+   app.run(debug=True,port=12345, ssl_context=('/home/abhinav/c++/python/server.crt','/home/abhinav/c++/python/server.key'))
 
        
 
