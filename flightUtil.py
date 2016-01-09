@@ -149,6 +149,14 @@ def handler(signum,frame):
    print traceback.print_stack()
    sys.exit(0)
 
+def flightType(flt):
+    pos = flt.find(flt[3:6], 4)
+    if pos == -1:
+        return 'direct'
+    pos = flt.find(flt[(pos + 3):(pos + 6)], pos + 4)
+    if pos == -1:
+        return 'oneStop'
+    return 'twoStop'
 
 def currentDate():
    #return the current date in system specific way %Y %M %D
@@ -214,14 +222,14 @@ def flightQueryPattern(airline,date):
    sufix = flightQuerySufix(date)
    return [prefix,'%'+sufix+'%']
 
-def flightQueryPattern(airline,orig,date):
-   airlinePattern = ''
-   if airline=='':
-      airlinePattern = '..'
-   else:
-      airlinePattern = airline
-   sufix = flightQuerySufix(date)
-   return '^'+orig+'[A-Z]{3}'+airlinePattern+'[0-9]*'+airlinePattern+sufix
+def flightQueryPattern(airline, orig, date):
+    airlinePattern = ''
+    if airline == '':
+        airlinePattern = '__'
+    else:
+        airlinePattern = airline
+    suffix = flightQuerySufix(date)
+    return orig + '%' + airlinePattern + '%' + suffix
 
 def findAndSanitizeInput(response):
    match = ''
@@ -267,15 +275,12 @@ def executeQueryAndReturn(query):
    return data
 
 def executeProcedureAndReturn(procName,args):
-   try:
-      cnx = connection()
-      cur = cnx.cursor()
-      cur.callproc(procName,args)
-      result = cur.fetchall()
-      cnx.close()
-   except Exception,e:
-      return 'Error'+str(e)
-   return result
+    cnx = connection()
+    cur = cnx.cursor()
+    cur.callproc(procName,args)
+    result = cur.fetchall()
+    cnx.close()
+    return result
 
 def cityPairList():
    cnx = connection()
@@ -315,6 +320,7 @@ def flightDescription(code,timimngs):
    prefix = airlineName(code[6:8])
    pair1 = code
    pair2 = prefix+ ' '
+   timings = timings.split(' ')
    sufix = [timing+' ' for timing in timimngs]
    cities = executeQueryAndReturn(cityQuery)
    def cityNames(codes):
@@ -384,15 +390,12 @@ def fetchSanitizedInput(orig,dest,date,travlr=1):
        while line!='':
 
           try:
-             line = re.search("eagerFetch",line)
-             if line:
-                print line
-                line = line.replace(':','=').split('=',9)
-                return False,line[1]
+             if re.search("eagerFetch",line):
+                line = line.replace(';', '=').split('=',4)
+                return (False, line[1])
           except Exception,e:
-                return True,line
+                return (True,line)
           line = f.readline()
-   return False,line 
-   #$ return findAndSanitizeInput(data)
+   return (False,line) 
 
 
