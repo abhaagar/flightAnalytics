@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, re, gc, time, signal, pdb
+import sys, re, gc, time, signal, os, pdb
 import json
 import MySQLdb
 import datetime,time
@@ -7,6 +7,9 @@ import multiprocessing, Queue
 import flightUtil
 import traceback
 
+
+#isTracingEnabled = os.environ['TRACE']
+isTracingEnabled = True
 flightPrefix = ''
 flightSuffix = ''
 unchangedFlightsPrefix = 'Unchanged Flights :'
@@ -92,136 +95,101 @@ def resetTheAvailability():
    cur.fetchall()
    cur.execute(flightUtil.commit)
    cur.fetchall()
-   cur.execute(flightUtil.resetStopAvailabilityQuery)
+   cur.execute(flightUtil.resetDirectFlightsDetailsAvailabilityQuery)
    cur.fetchall()
    cur.execute(flightUtil.commit)
    cur.fetchall()
-   cur.execute(flightUtil.resetStop1AvailabilityQuery)
+   cur.execute(flightUtil.resetOneStopFlightsDetailsAvailabilityQuery)
    cur.fetchall()
    cur.execute(flightUtil.commit)
    cur.fetchall()
-   cur.execute(flightUtil.resetStop2AvailabilityQuery)
+   cur.execute(flightUtil.resetTwoStopFlightsDetailsAvailabilityQuery)
    cur.fetchall()
    cur.execute(flightUtil.commit)
    cur.fetchall()
-
-
-#def fetchParsedJson(origin,destination,date):
-#   successOuter = False
-#   retry = 3
-#   parsed_json = ''
-#   while not successOuter:
-#      try :
-#         error,string = flightUtil.fetchSanitizedInput(origin,destination,date)
-#         if not error:
-#            parsed_json = json.loads(string)
-#            successOuter = True
-#            break
-#            #print "Json parse successfuly"
-#         else:
-#            raise Exception(string)
-#      except Exception,e:
-#         print 'Error1 Occurred :'+str(e)
-#         print date,origin,destination 
-#         print traceback.format_exc()
-#         print string #$
-#         print 'Error1 Occurred :'+str(e)
-#         if retry:
-#            retry = retry - 1
-#            print 'Will be Retried'
-#         else:
-#            logError(str(e),str(date+' '+origin+' '+destination),1)
-#            break
-#   if retry<3 and retry>0:
-#      print 'Retrying Payed Off'
-#   return parsed_json
 
 
 def fetchParsedJson(origin,destination,date):
-   try :
-      error,string = flightUtil.fetchSanitizedInput(origin,destination,date)
-      if not error:
+   successOuter = False
+   retry = 3
+   parsed_json = ''
+
+   error,string = flightUtil.fetchSanitizedInput(origin,destination,date)
+   if not error:
+      try :
          parsed_json = json.loads(string)
-         #print "Json parse successfuly"
-      else:
-         raise Exception(string)
-   except Exception,e:
-      print 'Error1 Occurred :'+str(e)
-      #$ print date,origin,destination 
-      #$ print traceback.format_exc()
-      #$ print string #$
-      #$ print 'Error1 Occurred :'+str(e)
-      #$ logError(str(e),str(date+' '+origin+' '+destination),1)
+      except Exception,e:
+         print 'Error :: Invalid Json '+str(e)
+         logError(str(e),str(date+' '+origin+' '+destination),1)
    return parsed_json
 
+
+
 def parseFlightScheduleAndStoreDetails(flightSchedules,pattern,route,date):
-   errorOccured = False
    for i in range(len(flightSchedules)):
       try:
-         successInner = False
-         retry = 3
          flights = ''
          flightPrices = ''
-         while not successInner:
-            try:
-               flights = flightSchedules[i]['fltSchedule'][pattern]
-               flightPrices = flightSchedules[i]['fareDetails'][pattern]
-               successInner = True
-               #print 'fareDetails have been parsed'
-            except Exception,e:
-               return True #$
-               #$print 'Error2 Occurred :'+str(e)
-               #$print traceback.format_exc()
-               #$route.printRoute()
-               #$#print flightSchedules[i]
-               #$print 'Error2 Occurred :'+str(e)
-               #$if retry:
-               #$   print 'Will be Retried'
-               #$   retry = retry - 1
-               #$else:
-               #$   #logError(\
-               #$   #   str(e),\
-               #$   #   str(date+\
-               #$   #       ' '+route.getSource()+\
-               #$   #       ' '+route.getDestination()),\
-               #$   #    2)
-               #$   break
-         if not successInner:
-            errorOccured = True
-            continue
-         iterate = len(flightPrices)
-         print 'Total Flights: %s'%str(iterate)
+         try:
+            flights = flightSchedules[i]['fltSchedule'][pattern]
+            if isTracingEnabled:
+               print 'Flight Schedule %d Parsed'%i
+            flightPrices = flightSchedules[i]['fareDetails'][pattern]
+            if isTracingEnabled:
+               print 'Fare Details of Flight Schedule %d Parsed'%i
+         except Exception,e:
+            if flights=='':
+               print 'Error :: Invalid or Absent fltSchedules '+str(e)
+               print flightSchedule[i]
+               continue
+         iterate = len(flights)
+         if flightPrices=='':
+            print 'Flight Schedules without fareDetails'
+         if isTracingEnabled:
+            print 'Total Flights: %s'%str(iterate)
          for j in range(iterate):
-            flight = flights[j]
-            flightId = flight['ID']
-            for fl in flight['OD']:
-               timings = ''
-               price = -1
-               if successInner:
-                  price = int(flightPrices[flightId]['O']['ADT']['tf'])
+            isStoredSuccessfuly = False
+            try:
+               flight = flights[j]
+               flightId = flight['ID']
+               if isTracingEnabled:
+                  print 'Flight id %s'%flightId
+               if len(flight['OD'])!=1:
+                  print 'Multiple OD entries'
+                  continue
+               for fl in flight['OD']:
+                  timings = ''
+                  price = -1
+                  if flightPrices!='':
+                     price = int(flightPrices[flightId]['O']['ADT']['tf'])
+                     if isTracingEnabled:
+                        print 'Fare of Flight parsed'
+                  for t in fl['FS']:
+                     timings += t['dd']+' '+t['ad']+' '
+                  args = \
+                     [flightId,price,timings,route.getSource(),route.getDestination()]
+                  if isTracingEnabled:
+                     print 'Flight Timimgs Parsed'
+                     print 'Executing Procedure with arguments :',args
+                  print flightUtil.executeProcedureAndReturn(\
+                     'maybeInsertFlightDetails',\
+                     args)
+                  isStoredSuccessfuly = True
+                  if flightPrices=='':
+                     print 'Entered the Mysterious Flights'
+                  if isTracingEnabled:
+                    print 'Executed Procedure Successfuly'
+            except Exception, e:
+               if isStoredSuccessfuly:
+                  print 'Error parsing Flight Id/Fare/Timings'+str(e)
+               else:
+                  print 'Error Procedure Execution'+str(e)
 
-               for t in fl['FS']:
-                  timings += t['dd']+' '+t['ad']+' '
-               args = [flightId,price,timings,route.getSource(),route.getDestination()]
-               print 'Argument :',args
-               #print 'Executing Procedure'
-               #$flightUtil.executeProcedureAndReturn(\
-               #$   'maybeInsertFlightDetails',\
-               #$   args)
-               if not successInner:
-                  print 'Entered the Mysterious Flights'
-               #print 'Executed Procedure'
       except Exception, e:
-         logError(str(e),'',3) #$ 
-         print 'Error3 Occured :',str(e)
-         return True
-         logError(str(e),'',3)
-         print 'Error3 Occured :',str(e)
-         print traceback.format_exc()
-         print 'Error3 Occured :',str(e)
-         errorOccured = True
+         print 'Unexpected Error '+str(e)
+         return False
    gc.collect()
-   return errorOccured
+   return True
 
 def retryFlight(retryNow):
    retry = retryNow.getRoute()
@@ -271,29 +239,33 @@ def maybeInsertFlightHistoryForDate(date):
    for pair in cityPairs:
       route = flightUtil.Route(pair[0],pair[1])
       print 'New Request'
+      print date,route.getSource(),route.getDestination()
       parsed_json = fetchParsedJson(\
                        route.getSource(),\
                        route.getDestination(),\
                        date)
       if parsed_json=='':
-         retryQueue.put(\
-            flightUtil.RetryFlight(\
-                                  route,\
-                                  date))
+         #retryQueue.put(\
+         #   flightUtil.RetryFlight(\
+         #                         route,\
+         #                         date))
          continue
+      if isTracingEnabled:
+         print 'Flight Schedules Parsed'
       try:
          flightPrefix = parsed_json['requestParams']['origin']+\
                         parsed_json['requestParams']['destination']
+
          flightSuffix = \
             ''.join(reversed(\
                     parsed_json['requestParams']['flight_depart_date'].split('/')))
          cityNames = parsed_json['cityName']
          flightSchedules = parsed_json['resultData']
-         #print 'Flight Schedules Parsed'
-         #print 'Total Flight Schedules: %s'%str(len(flightSchedules))
-         print 'Got FlightSchedule Right'
+         if isTracingEnabled:
+             print 'Result Data Parsed'
+             print 'Total Flight Schedules: %s'%str(len(flightSchedules))
       except Exception,e:
-         print 'Error Occured2'
+         print 'Error :: Insufficient Data in Parsed Json'+str(e)
          #$ print parsed_json
          #logError(str(e),'',4)
          #retryQueue.put(\
@@ -306,18 +278,11 @@ def maybeInsertFlightHistoryForDate(date):
                                                route.getDestination(),\
                                                date)
       pattern = pattern.replace('%','')
-      if parseFlightScheduleAndStoreDetails(flightSchedules,pattern,route,date):
-         
-         print 'Error Occured2'
-         print flightSchedules
-      else :
-         print 'No Error Occurred'
-         print flightSchedules
-         #$ print parsed_json
-        #$ retryQueue.put(\
-        #$    flightUtil.RetryFlight(\
-        #$                          route,\
-        #$                          date))
+      parseFlightScheduleAndStoreDetails(flightSchedules,pattern,route,date)
+      #$ retryQueue.put(\
+      #$    flightUtil.RetryFlight(\
+      #$                          route,\
+      #$                          date))
    #while not retryQueue.empty():
    #    retryFlight(retryQueue.get())
    sys.exit(0) 
@@ -353,7 +318,7 @@ if __name__=="__main__":
    for date in dates:
       iterator = 0
       while iterator < len(date):
-         if q.qsize() < 1:
+         if q.qsize() < 2:
             d = formatInTwoDigit(date[0])+'/'+formatInTwoDigit(date[1])+'/'+year
             pid = multiprocessing.Process(target=maybeInsertFlightHistoryForDate,args=(d,),name=(str(date)))
             q.put(pid)
@@ -365,7 +330,7 @@ if __name__=="__main__":
                 pid = q.get()
                 if pid.is_alive():
                    q.put(pid)
-            time.sleep(10)
+            time.sleep(5)
    sys.stdout.close()
    sys.stderr.close()
 
