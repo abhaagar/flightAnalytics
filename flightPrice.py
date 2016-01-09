@@ -1,17 +1,13 @@
 #!/usr/bin/python
-import sys, re
+import sys, re, gc, time, pdb
 import json
 import MySQLdb
 import datetime,time
 import flightUtil
 
-level0=''
-level1='  '
-level2='     '
-level3='          '
 flightPrefix = ''
 flightSuffix = ''
-cnx = ''
+#cnx = ''
 unchangedFlightsPrefix = 'Unchanged Flights :'
 changedFlightsPrefix = 'Changed Flights :'
 newFlightsPrefix = 'New Flights :'
@@ -24,12 +20,12 @@ def cityQuery():
    return "SELECT code FROM cityWithCode"
 
 def cityPairList():
+   cnx = flightUtil.connection()
    cur = cnx.cursor()
    cur.execute(cityQuery())
    dataDuplicate = cur.fetchall()
-   print dataDuplicate
    data = set(dataDuplicate)
-   print data
+   cnx.close()
    return [(city1[0],city2[0]) for city1 in data for city2 in data if city1[0]!=city2[0]]
    
 
@@ -76,96 +72,95 @@ def printFlightsInScedule(key,value):
    for key1,value1 in value.items():
       if re.match(flightPrefix,key1) is not None and key1.endswith(flightSuffix): 
          checkAndInsertFlightPrice(key1,value1['O']['ADT']['tf'])
-#months = [31,30,31]
-months = [31,30.31]
-year = '2015'
-currMonth = 10
-if __name__=="__main__":
-   sys.stdout = open('/home/abhinav/c++/python/log.out','a+')
-   sys.stderr = open('/home/abhinav/c++/python/log.err','a+')
 
-   print datetime.datetime.fromtimestamp(\
-         time.time()).strftime('%Y-%m-%d %H:%M:%S')
-   cnx = flightUtil.createConnection()
+def resetTheAvailability():
+   c = flightUtil.connection()
+   cur = c.cursor()
+   cur.execute(flightUtil.resetFlightAvailabilityQuery)
+
+months = [32,31,32,31,32,31]
+year = '2016'
+currMonth = 1
+if __name__=="__main__":
+   sys.stdout = open('/home/abhinav/c++/python/logDev.out','a+')
+   sys.stderr = open('/home/abhinav/c++/python/logDev.err','a+')
+   #pdb.set_trace()
+   #cnx = flightUtil.connection()
+   resetTheAvailability()
    cityPairs = cityPairList()
-   #print cityPairs
-   try:
-      sys.stdout.close()
-      sys.stderr.close()
-   except Exception,e:
-      print str(e)
    m = currMonth - 1
+   gc.set_debug(gc.DEBUG_LEAK)
    for month in months:
       m = m + 1
       for day in range(1,month):
-         d = day 
-         if day/10==0:
-           d = '0'+str(day)
-         date = year+str(m)+str(d)
-      for pair in cityPairs:
-         sys.stdout = open('/home/abhinav/c++/python/log/%s%s.out'%(pair[0],pair[1]),'a+')
-         sys.stderr = open('/home/abhinav/c++/python/log/%s%s.err'%(pair[0],pair[1]),'a+')
-         print datetime.datetime.fromtimestamp(\
-               time.time()).strftime('%Y-%m-%d %H:%M:%S')
-         print pair[0],pair[1],date
-         string = flightUtil.fetchSanitizedInput(pair[0],pair[1],date)
-         try:
-            parsed_json = json.loads(string)
+         def formatInTwoDigit(num):
+            if num/10==0:
+               num = '0'+str(num)
+            return str(num)
+         date = formatInTwoDigit(day)+'/'+formatInTwoDigit(m)+'/'+year
+         print date
+         for pair in cityPairs:
+            print pair
+            try :
+               string = flightUtil.fetchSanitizedInput(pair[0],pair[1],date)
+               parsed_json = json.loads(string)
+               print "Json parse successfuly"
+            except Exception,e:
+
+               print 'Error1 Occurred :'+str(e)
+               print pair
+               print string
+               print parsed_json
+               print 'Error1 Occurred :'+str(e)
+               continue;
+
             flightPrefix = parsed_json['requestParams']['origin']+\
                            parsed_json['requestParams']['destination']
             flightSuffix = \
                ''.join(reversed(parsed_json['requestParams']['flight_depart_date'].split('/')))
             cityNames = parsed_json['cityName']
             flightSchedules = parsed_json['resultData']
-         except Exception,e:
-            print 'Error occured',str(e)
-            try:
-               sys.stdout.close()
-               sys.stderr.close()
-            except Exception,e:
-               print 'Error occured',str(e)
-            continuei;
-         flightPattern = pair[0]+pair[1]+date
-         for i in range(len(flightSchedules)):
-            query = ''
-            for j in flightSchedules[i]['fltSchedule'][flightPattern]:
-               flight = j['ID']
-               for k in j['OD']:
-                  for l in k['FS']: 
-         for i in range(len(flightSchedules)):
-            try:
-               changedFlights = changedFlightsPrefix
-               unchangedFlights = unchangedFlightsPrefix
-               newFlights = newFlightsPrefix
-               
-               flights = int(flightSchedules[i]['isFlights'])
-               print 'totalFlights: %s'%flights
-               fairDetails = flightSchedules[i]['fareDetails']
-               for key1,value1 in fairDetails.items():
-                  if type(value1) is dict:
-                     printFlightsInScedule(key1,value1)
-                  elif type(value1) is list:
-                     print key1, ':', len(value1)
-                  else:
-                     print key1, ':', value1
-               if changedFlights!=changedFlightsPrefix:
-                  print changedFlights
-               if unchangedFlights!=unchangedFlightsPrefix:
-                  print unchangedFlights
-               if newFlights!=newFlightsPrefix:
-                  print newFlights
-            except Exception, e:
-               print 'Error occured',str(e)
+            print 'Flight Schedules Parsed'
+            print 'Total Flight Schedules: %s'%str(len(flightSchedules))
+            for i in range(len(flightSchedules)):
                try:
-                  sys.stdout.close()
-                  sys.stderr.close()
-               except Exception,e:
-                  print 'Error occured',str(e)
-         try :
-            sys.stdout.close()
-            sys.stderr.close()
-         except Exception, e:
-            print 'Error occured in closing ',str(e)
-            sys.exit(1)
+                  pat = flightUtil.flightSearchPattern(pair[0],pair[1],date)
+                  pat = pat.replace('%','')
+                  try:
+                     flights = flightSchedules[i]['fltSchedule'][pat]
+                     
+                     flightPrices = flightSchedules[i]['fareDetails'][pat]
+                     print 'fareDetails have been parsed'
+                  except Exception,e:
+                     print 'Error2 Occurred :'+str(e)
+                     #pdb.set_trace()
+                     print pair
+                     #print flightSchedules[i]
+                     print 'Error2 Occurred :'+str(e)
+                     continue
+                  iterate = len(flightPrices)
+                  print 'Total Flights: %s'%str(iterate)
+                  for j in range(iterate):
+                     flight = flights[j]
+                     flightId = flight['ID']
+                     for fl in flight['OD']:
+                        timings = ''
+                        price = flightPrices[flightId]['O']['ADT']['tf']
+
+                        for t in fl['FS']:
+                           timings += t['dd']+' '+t['ad']+' '
+                        args = [flightId,price,timings,pair[0],pair[1]]
+                        print 'Executing Procedure'
+                        flightUtil.executeProcedureAndReturn(\
+                           'maybeInsertFlightDetails',\
+                           args)
+                        print 'Executed Procedure'
+               except Exception, e:
+                  print 'Error3 Occured :',str(e)
+                  sys.exit(1)
+            gc.collect()
+   sys.stdout.close()
+   sys.stderr.close()
+
 print 'exiting'
 sys.exit(0)
