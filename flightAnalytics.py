@@ -3,7 +3,7 @@
 from flask import Flask
 from flask import render_template, request
 import flightUtil
-import sys, datetime
+import sys, datetime, time
 import json
 
 
@@ -68,11 +68,17 @@ def flightHistory():
          print pattern
          def flightView(query,pattern,orig,dest):
             fltLst = []
+            nowTime = time.strftime("%H:%M")
+            currentDay = time.strftime("%d")
+            currentMonth = time.strftime("%m")
+            flightDate = dt
+            todayDate = time.strftime('%m/%d/%Y')  
             fltHst = \
                flightUtil.executeQueryAndReturn( \
                   query%(pattern,orig,dest))
             for flt in fltHst:
-               fltLst.append(flightUtil.flightDescription(flt[0],flt[1]))
+               if flightDate!=todayDate or nowTime < flt[1][:5]: 
+                  fltLst.append(flightUtil.flightDescription(flt[0],flt[1]))
             return fltLst
          if stopButton.getValue()=='':
             twoStop = flightView(\
