@@ -60,13 +60,21 @@
               </div>
               <label for="stop">Stops:</label>
               <div class="btn-group" id="myDropdown4">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="Stop" id='stop'>{{ stop }}<span class="caret"></span></button>
-                <input type='hidden' class='input' name='selectedStop' id='selectedStop' value="{{ stopValue }}">
+                  <input type='hidden' class='input' name='selectedStop' id='selectedStop' value="{{ stopValue }}">
+                  <ul class="checkbox">
+                    <li><input type="checkbox" id="direct" value="direct" onClick="fltTypeChange(this);" checked/><label for="direct">Direct</label></li>
+                    <li><input type="checkbox" id="one" value="one" onClick="fltTypeChange(this);" checked/><label for="one">One</label></li>
+                    <li><input type="checkbox" id="two" value="two" onClick="fltTypeChange(this);" checked/><label for="two">Two</label></li>
+                  </ul> 
+
+                <!-- <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" name="Stop" id='stop'>{{ stop }}<span class="caret"></span></button>
+
+
                 <ul class="dropdown-menu form-control" role="menu"  id='stops'>
                   <li role="presentation"><a role="menuitem" value="direct" href="#">direct</a></li>
                   <li role="presentation"><a role="menuitem" value="one" href="#">one</a></li>
                   <li role="presentation"><a role="menuitem" value="two" href="#">two</a></li>
-                </ul>
+                </ul> -->
               </div>
             <label for="date">Date:</label>
             <input type="text" id="datepicker" name="datepicker" value="{{date}}">
@@ -78,7 +86,7 @@
     <table cellspacing="0" border="1" cellpadding="0" style="width:50%;">
        <tr>
          <td>
-            <div class="container" style="width:400px">
+            <div class="container" id="directFlightsDiv" style="width:400px; display: none">
                 {%- if directFlights|count >= 1 %}
                    <label for='direct'>Direct Flights</label>
                 {% endif %}
@@ -88,7 +96,7 @@
                    {% endfor %}
                 </ul>
             </div>
-            <div class="container" style="width:600px;">
+            <div class="container" id="oneStopFlightsDiv" style="width:600px; display:none">
                 {%- if oneStopFlights|count >= 1 %}
                    <label for='oneStope'>Flights With One Stop</label>
                 {% endif %}
@@ -98,7 +106,7 @@
                    {% endfor %}
                 </ul>
             </div>
-            <div class="container" style="width:800px;">
+            <div class="container" id="twoStopFlightsDiv" style="width:800px; display: none">
                 {%- if twoStopFlights|count >= 1 %}
                    <label for='twoStop'>Flights With Two Stop</label>
                 {% endif %}
@@ -116,6 +124,23 @@
        </tr>
     </table>
     <script>
+        var fltType = $("#selectedStop").val();
+        if(fltType=='') {
+           jQuery('#directFlightsDiv').css('display','block');
+           jQuery('#oneStopFlightsDiv').css('display','block');
+           jQuery('#twoStoplightsDiv').css('display','block');
+        } else { 
+           if(fltType.search('direct')==-1) {
+              jQuery('#directFlightsDiv').css('display','block');
+           }
+           if(fltType.search('one')==-1) {
+              jQuery('#oneStopFlightsDiv').css('display','block');
+           }
+           if(fltType.search('two')==-1) {
+              jQuery('#twoStoplightsDiv').css('display','block');
+           }
+        }
+
         $(".dropdown-menu li a").click(function(){
             var selText = $(this).text();
             var selVal = $(this).attr("value");
@@ -123,6 +148,29 @@
             $(this).parents('.btn-group').find('.input').val(selVal);
             
         });
+        function fltTypeChange(e) {
+            var fltType = e.value;
+            var divToHandle = "";
+            var flightFilter = $("#selectedStop").val();
+            if(fltType=="direct") {
+               divToHandle = "#directFlightsDiv";
+            } else if(fltType=="one") {
+               divToHandle = "#oneStopFlightsDiv";
+            } else if(fltType=="two") {
+               divToHandle = "#twoStopFlightsDiv";
+            }
+
+            if(e.checked) {
+               jQuery(divToHandle).css('display','block')
+               flightFilter = flightFilter.replace(fltType,''); 
+            } else {
+               flightFilter = flightFilter.concat(fltType);
+               jQuery(divToHandle).css('display','none')
+            }
+            $('#selectedStop').val(flightFilter);
+
+        }
+
         function validateForm(){
             var orig = $('#selectedOrigin').val();
             var dest = $('#selectedDestination').val();

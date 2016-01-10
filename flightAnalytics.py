@@ -80,22 +80,22 @@ def flightHistory():
                if flightDate!=todayDate or nowTime < flt[1][:5]: 
                   fltLst.append(flightUtil.flightDescription(flt[0],flt[1]))
             return fltLst
-         if stopButton.getValue()=='':
-            twoStop = flightView(\
-               flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
-            oneStop = flightView(\
-               flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
-            direct  = flightView(\
-               flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
-         elif stopButton.getValue()=='direct':
-            direct  = flightView(\
-               flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
-         elif stopButton.getValue()=='one':
-            oneStop = flightView(\
-               flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
-         elif stopButton.getValue()=='two':
-            twoStop = flightView(\
-               flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         #if stopButton.getValue()=='':
+         twoStop = flightView(\
+            flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         oneStop = flightView(\
+            flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         direct  = flightView(\
+            flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         #elif stopButton.getValue()=='direct':
+         #   direct  = flightView(\
+         #      flightUtil.directFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         #elif stopButton.getValue()=='one':
+         #   oneStop = flightView(\
+         #      flightUtil.oneStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
+         #elif stopButton.getValue()=='two':
+         #   twoStop = flightView(\
+         #      flightUtil.twoStopFlightsQuery,pattern,originButton.getValue(),destinationButton.getValue())
 
          destinationButton.setLabel(\
             flightUtil.executeQueryAndReturn(\

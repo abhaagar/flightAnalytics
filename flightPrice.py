@@ -171,12 +171,14 @@ def parseFlightScheduleAndStoreDetails(flightSchedules,pattern,route,date):
                   if isTracingEnabled:
                      print 'Flight Timimgs Parsed'
                      print 'Executing Procedure with arguments :',args
+                  if flightPrices=='':
+                     print 'Entered the Mysterious Flights'
+                     continue
                   print flightUtil.executeProcedureAndReturn(\
                      'maybeInsertFlightDetails',\
                      args)
                   isStoredSuccessfuly = True
-                  if flightPrices=='':
-                     print 'Entered the Mysterious Flights'
+
                   if isTracingEnabled:
                     print 'Executed Procedure Successfuly'
             except Exception, e:
@@ -293,9 +295,8 @@ year = '2015'
 currMonth = 10
 endMonth = 10
 if __name__=="__main__":
-   flightUtil.connection()
    year = sys.argv[1]
-   currMonth = int(sys.argv[2])
+   startMonth = int(sys.argv[2])
    endMonth = int(sys.argv[3])
    today = int(time.strftime('%d'))
    currMonth = int(time.strftime('%m'))
@@ -303,10 +304,11 @@ if __name__=="__main__":
    if len(sys.argv)==5:
       isResetNeeded = sys.argv[4]
    sys.stdout = \
-      open('/home/abhinav/c++/python/logDev'+year+str(currMonth)+'.out','w+')
+      open('/home/abhinav/c++/python/logDev'+year+str(startMonth)+'.out','w+')
    sys.stderr = \
-      open('/home/abhinav/c++/python/logDev'+year+str(currMonth)+'.err','w+')
+      open('/home/abhinav/c++/python/logDev'+year+str(startMonth)+'.err','w+')
    if isResetNeeded!='':
+      print "Going to Reset Availability"
       resetTheAvailability()
       print "Reset Availability"
    q = Queue.Queue()
@@ -315,9 +317,9 @@ if __name__=="__main__":
       if num/10==0:
          num = '0'+str(num)
       return str(num)
-   months = allMonths[currMonth-1:endMonth]
+   months = allMonths[startMonth-1:endMonth]
    dates = \
-      [(j,i+1) for i in range(currMonth-1,endMonth) for j in range(1,allMonths[i]) if ((i+1)==currMonth and j>=today) or (i+1)!=currMonth]
+      [(j,i+1) for i in range(startMonth-1,endMonth) for j in range(1,allMonths[i]) if ((i+1)==currMonth and j>=today) or (i+1)!=currMonth]
    for date in dates:
       iterator = 0
       while iterator < len(date):
