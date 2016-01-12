@@ -25,7 +25,7 @@ oneStopFlightsQuery = "SELECT DISTINCT name,timings "\
                       "FROM flights as A,oneStopFlightsDetails as B "\
                       "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' "\
                       "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
-twoStopFlightsQuery = "SELECT DISTINCT name,timings "\ 
+twoStopFlightsQuery = "SELECT DISTINCT name,timings "\
                       "FROM flights as A,twoStopFlightsDetails as B "\
                       "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' "\
                       "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
