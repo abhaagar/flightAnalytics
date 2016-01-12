@@ -9,7 +9,7 @@ import traceback
 
 
 #isTracingEnabled = os.environ['TRACE']
-isTracingEnabled = True
+isTracingEnabled = False
 flightPrefix = ''
 flightSuffix = ''
 unchangedFlightsPrefix = 'Unchanged Flights :'

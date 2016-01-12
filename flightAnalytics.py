@@ -9,6 +9,11 @@ import json
 
 app = Flask(__name__)
 
+@app.route('/index',methods=['POST','GET'])
+def index():
+   return render_template('index.html')
+
+
 @app.route('/flight/<name>', methods=['POST'])
 def flight(name):
    typ = flightUtil.flightType(name)
@@ -147,7 +152,7 @@ def priceHistory():
                                              slotTo,\
                                              origin,\
                                              destination,\
-                                             '%'+flightUtil.flightQuerySufix(date)+'%')
+                                             origin+'%'+flightUtil.flightQuerySufix(date)+'%')
          print query
          history=flightUtil.executeQueryAndReturn(query)
          print history
