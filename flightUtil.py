@@ -18,26 +18,26 @@ airlineQuery = 'SELECT name, code FROM airline'
 cityNameQuery = "SELECT name FROM cityWithCode where code='%s'"
 cityQuery = 'SELECT name,code FROM cityWithCode'
 directFlightsQuery = "SELECT DISTINCT name,timings " \
-                     "FROM flights as A,directFlightsDetails as B " \
+                     "FROM directFlights as A,directFlightsDetails as B " \
                      "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' " \
                      "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
 oneStopFlightsQuery = "SELECT DISTINCT name,timings "\
-                      "FROM flights as A,oneStopFlightsDetails as B "\
+                      "FROM oneStoplights as A,oneStopFlightsDetails as B "\
                       "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' "\
                       "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
 twoStopFlightsQuery = "SELECT DISTINCT name,timings "\
-                      "FROM flights as A,twoStopFlightsDetails as B "\
+                      "FROM twoStopFlights as A,twoStopFlightsDetails as B "\
                       "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' "\
                       "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
 errorLoggigQuery = "Insert into errorLog (traceBack,information,type) values('%s','%s',%s)"
 directFlightPriceHistoryQuery = "SELECT price,DATE_FORMAT(C.sampleTime,'%%Y/%%m/%%d') as date "\
-                                "FROM flights as A,directFlightsDetails as B,directFlightsPrices as C "\
+                                "FROM directFlights as A,directFlightsDetails as B,directFlightsPrices as C "\
                                 "WHERE A.id=B.fid and B.id=C.sid and name='%s' ORDER BY date asc"
 oneStopFlightPriceHistoryQuery = "SELECT price,DATE_FORMAT(oneStopFlightsPrices.sampleTime,'%%Y/%%m/%%d') as date "\
-                                 "FROM flights as A,oneStopFlightsDetails as B,oneStopFlightsPrices as C "\
+                                 "FROM oneStopFlights as A,oneStopFlightsDetails as B,oneStopFlightsPrices as C "\
                                  "WHERE A.id=B.fid and B.id=C.sid and name='%s' ORDER BY date asc"
 twoStopFlightPriceHistoryQuery = "SELECT price,DATE_FORMAT(twoStopFlightsPrices.sampleTime,'%%Y/%%m/%%d') as date "\
-                                 "FROM flights as A,twoStopFlightsDetails as B,twoStopFlightsPrices as C "\
+                                 "FROM twoStopFlights as A,twoStopFlightsDetails as B,twoStopFlightsPrices as C "\
                                  "WHERE A.id=B.fid and B.id=C.sid and name='%s' ORDER BY date asc"
 metricPriceHistoryQuery = "SELECT Date_FORMAT(sampleDate,'%%d/%%m/%%Y'), %s(price) "\
                           "FROM directFlights "\
