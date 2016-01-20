@@ -22,7 +22,7 @@ directFlightsQuery = "SELECT DISTINCT name,timings " \
                      "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' " \
                      "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
 oneStopFlightsQuery = "SELECT DISTINCT name,timings "\
-                      "FROM oneStoplights as A,oneStopFlightsDetails as B "\
+                      "FROM oneStopFlights as A,oneStopFlightsDetails as B "\
                       "WHERE A.id=B.fid AND A.name LIKE '%s' AND departureCity='%s' "\
                       "AND arrivalCity='%s'AND A.isAvailable=1 AND B.isAvailable=1"
 twoStopFlightsQuery = "SELECT DISTINCT name,timings "\
@@ -50,7 +50,9 @@ oneStopFlightHistoryQuery = "SELECT Date_FORMAT(C.sampleDate,'%%d/%%m/%%Y'), %s(
                             "FROM flights as A, oneStopFlightsDetails as B, oneStopFlightsPrices as C"
 directFlightHistoryQuery = "SELECT Date_FORMAT(C.sampleDate,'%%d/%%m/%%Y'), %s(price) "\
                            "FROM flights as A, twoStopFlightsDetails as B, twoStopFlightsPrices as C"
-resetFlightAvailabilityQuery = 'UPDATE flights SET isAvailable=0'
+resetDirectFlightAvailabilityQuery = 'UPDATE directFlights SET isAvailable=0'
+resetOneStopFlightAvailabilityQuery = 'UPDATE oneStopFlights SET isAvailable=0'
+resetTwoStopFlightAvailabilityQuery = 'UPDATE twoStopFlights SET isAvailable=0'
 resetDirectFlightsDetailsAvailabilityQuery = 'UPDATE directFlightsDetails SET isAvailable=0'
 resetOneStopFlightsDetailsAvailabilityQuery = 'UPDATE oneStopFlightsDetails SET isAvailable=0'
 resetTwoStopFlightsDetailsAvailabilityQuery = 'UPDATE twoStopFlightsDetails SET isAvailable=0'
@@ -343,7 +345,7 @@ def findAndSanitizeInput(response):
 
 def createConnection():
     try:
-        cnx = MySQLdb.connect(host='127.0.0.1', user='root', passwd='root', db='flightDetails')
+        cnx = MySQLdb.connect(host='127.0.0.1', user='root', passwd='root', db='flightsInformation')
     except Exception as e:
         print str(e)
         sys.exit(1)
